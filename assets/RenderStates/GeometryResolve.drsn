@@ -1,0 +1,31 @@
+{
+    "Shaders": [
+        {
+            "Desc": {
+                "Name": "GeometryResolve-CS",
+                "ShaderType": "COMPUTE"
+            },
+            "SourceLanguage": "HLSL",
+            "FilePath": "GeometryResolve.hlsl",
+            "EntryPoint": "CSMain",
+            "UseCombinedTextureSamplers": true
+        }
+    ],
+    "Pipeleines": [
+        {
+            "PSODesc": {
+                "Name": "GeometryResolve",
+                "PipelineType": "COMPUTE",
+                "ResourceLayout": {
+                    "DefaultVariableMergeStages": "COMPUTE",
+                    "Variables": [
+                        { "ShaderStages": [ "COMPUTE" ], "Name": "TextureColor",     "Type": "DYNAMIC" },
+                        { "ShaderStages": [ "COMPUTE" ], "Name": "TextureHead",      "Type": "DYNAMIC" },
+                        { "ShaderStages": [ "COMPUTE" ], "Name": "BufferLinkedList", "Type": "DYNAMIC" }
+                    ]                   
+                }
+            },
+            "pCS": "GeometryResolve-CS"
+        }
+    ]
+}

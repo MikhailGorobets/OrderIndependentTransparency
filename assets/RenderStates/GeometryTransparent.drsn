@@ -1,0 +1,62 @@
+{
+    "Shaders": [
+        {
+            "Desc": {
+                "Name": "GeometryTransparent-VS",
+                "ShaderType": "VERTEX"
+            },
+            "SourceLanguage": "HLSL",
+            "FilePath": "GeometryTransparent.hlsl",
+            "EntryPoint": "VSMain",
+            "UseCombinedTextureSamplers": true
+        },
+        {
+            "Desc": {
+                "Name": "GeometryTransparent-PS",
+                "ShaderType": "PIXEL"
+            },
+            "SourceLanguage": "HLSL",
+            "FilePath": "GeometryTransparent.hlsl",
+            "EntryPoint": "PSMain",
+            "UseCombinedTextureSamplers": true
+        }
+    ],
+    "Pipeleines": [
+        {
+            "GraphicsPipeline": {
+                "DepthStencilDesc": {
+                    "DepthEnable": true,
+                    "DepthWriteEnable": false,
+                    "DepthFunc": "LESS"
+                },
+                "RasterizerDesc": {
+                    "FillMode": "SOLID",
+                    "CullMode": "NONE",
+                    "FrontCounterClockwise": true,
+                    "DepthClipEnable": true
+                },               
+                "SmplDesc": {
+                    "Count": 4,
+                    "Quality": 0
+                },      
+                "NumRenderTargets": 0,
+                "DSVFormat": "D32_FLOAT",
+                "PrimitiveTopology": "TRIANGLE_LIST"
+                
+            },
+            "PSODesc": {
+                "Name": "GeometryTransparent",
+                "PipelineType": "GRAPHICS",
+                "ResourceLayout": {
+                    "DefaultVariableMergeStages": "PIXEL",
+                    "Variables": [
+                        { "ShaderStages": [ "PIXEL" ], "Name": "TextureHead",      "Type": "DYNAMIC" },
+                        { "ShaderStages": [ "PIXEL" ], "Name": "BufferLinkedList", "Type": "DYNAMIC" }
+                    ]                   
+                }
+            },
+            "pVS": "GeometryTransparent-VS",
+            "pPS": "GeometryTransparent-PS"
+        }
+    ]
+}
