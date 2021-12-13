@@ -3,12 +3,14 @@ cmake_minimum_required (VERSION 3.6)
 project(OrderIndependentTransparency CXX)
 
 set(SOURCE
-    src/RenderStateArchive.hpp
+    src/RenderStateArchive.cpp
+    src/ShaderResourceBindingArchive.cpp
     src/OrderIndependentTransparencySample.cpp
 )
 
 set(INCLUDE
-    src/RenderStateArchive.cpp
+    src/RenderStateArchive.hpp
+    src/ShaderResourceBindingArchive.hpp
     src/OrderIndependentTransparencySample.hpp
 )
 
@@ -20,13 +22,14 @@ set(SHADERS
     assets/Shaders/GraphicsPrimitives.hlsl
 )
 
-set(ASSETS
+set(RENDER_STATES
     assets/RenderStates/GeometryOpaque.drsn
     assets/RenderStates/GeometryResolve.drsn
     assets/RenderStates/GeometryTransparent.drsn
     assets/RenderStates/GraphicsPrimitives.drsn
+    assets/RenderStates/RenderStatesLibrary.drsn
 )
 
-add_sample_app("OrderIndependentTransparency" "DiligentCommunity/Samples" "${SOURCE}" "${INCLUDE}" "${SHADERS}" "${ASSETS}")
 
+add_sample_app("OrderIndependentTransparency" "DiligentCommunity/Samples" "${SOURCE}" "${INCLUDE}" "${SHADERS}" "${RENDER_STATES}")
 target_link_libraries(OrderIndependentTransparency PRIVATE Diligent-RenderStateNotationParser)

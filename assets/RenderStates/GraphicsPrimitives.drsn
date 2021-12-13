@@ -23,7 +23,7 @@
         {
             "Desc": {
                 "Name": "ClearUnorderedAccessViewUint-CS",
-                "ShaderType": "Compute"
+                "ShaderType": "COMPUTE"
             },
             "SourceLanguage": "HLSL",
             "FilePath": "GraphicsPrimitives.hlsl",
@@ -33,7 +33,7 @@
         {
             "Desc": {
                 "Name": "ClearBufferCounter-CS",
-                "ShaderType": "Compute"
+                "ShaderType": "COMPUTE"
             },
             "SourceLanguage": "HLSL",
             "FilePath": "GraphicsPrimitives.hlsl",
@@ -41,70 +41,83 @@
             "UseCombinedTextureSamplers": true
         }
     ],
-    "Pipeleines": [
+    "Pipelines": [
         {
             "GraphicsPipeline": {
                 "DepthStencilDesc": {
-                    "DepthEnable": true,
-                    "DepthWriteEnable": true,
-                    "DepthFunc": "LESS"
+                    "DepthEnable": false
                 },
                 "RasterizerDesc": {
                     "FillMode": "SOLID",
-                    "CullMode": "BACK",
-                    "FrontCounterClockwise": true,
-                    "DepthClipEnable": true
-                },               
-                "SmplDesc": {
-                    "Count": 4,
-                    "Quality": 0
-                },      
+                    "CullMode": "NONE"
+                },
                 "NumRenderTargets": 1,
                 "RTVFormats": {
-                  "0": "RGBA8_UNORM"
+                    "0": "RGBA8_UNORM_SRGB"
                 },
-                "DSVFormat": "D32_FLOAT",
                 "PrimitiveTopology": "TRIANGLE_LIST"
-                
+
             },
             "PSODesc": {
-                "Name": "GeometryOpaque",
-                "PipelineType": "GRAPHICS"
+                "Name": "BlitTexture",
+                "PipelineType": "GRAPHICS",
+                "ResourceLayout": {
+                    "Variables": [
+                        {
+                            "ShaderStages": "PIXEL",
+                            "Name": "TextureSRV",
+                            "Type": "DYNAMIC"
+                        }
+                    ],
+                    "ImmutableSamplers": [
+                        {
+                            "SamplerOrTextureName": "TextureSRV",
+                            "ShaderStages": "PIXEL",
+                            "Desc": {
+                                "MinFilter": "POINT",
+                                "MagFilter": "POINT",
+                                "MipFilter": "POINT"
+                            }
+                        }
+                    ]
+                }
             },
-            "pVS": "GeometryOpaque-VS",
-            "pPS": "GeometryOpaque-PS"
+            "pVS": "BlitTexture-VS",
+            "pPS": "BlitTexture-PS"
         },
         {
-            "GraphicsPipeline": {
-                "DepthStencilDesc": {
-                    "DepthEnable": true,
-                    "DepthWriteEnable": true,
-                    "DepthFunc": "LESS"
-                },
-                "RasterizerDesc": {
-                    "FillMode": "SOLID",
-                    "CullMode": "BACK",
-                    "FrontCounterClockwise": true,
-                    "DepthClipEnable": true
-                },               
-                "SmplDesc": {
-                    "Count": 4,
-                    "Quality": 0
-                },      
-                "NumRenderTargets": 1,
-                "RTVFormats": {
-                  "0": "RGBA8_UNORM"
-                },
-                "DSVFormat": "D32_FLOAT",
-                "PrimitiveTopology": "TRIANGLE_LIST"
-                
-            },
             "PSODesc": {
-                "Name": "GeometryOpaque",
-                "PipelineType": "GRAPHICS"
+                "Name": "ClearUnorderedAccessViewUint",
+                "PipelineType": "COMPUTE",
+                "ResourceLayout": {
+                    "DefaultVariableMergeStages": "COMPUTE",
+                    "Variables": [
+                        {
+                            "ShaderStages": [ "COMPUTE" ],
+                            "Name": "TextureUAV",
+                            "Type": "DYNAMIC"
+                        }
+                    ]
+                }
             },
-            "pVS": "GeometryOpaque-VS",
-            "pPS": "GeometryOpaque-PS"
+            "pCS": "ClearUnorderedAccessViewUint-CS"
+        },
+        {
+            "PSODesc": {
+                "Name": "ClearBufferCounter",
+                "PipelineType": "COMPUTE",
+                "ResourceLayout": {
+                    "DefaultVariableMergeStages": "COMPUTE",
+                    "Variables": [
+                        {
+                            "ShaderStages": [ "COMPUTE" ],
+                            "Name": "BufferUAV",
+                            "Type": "DYNAMIC"
+                        }
+                    ]
+                }
+            },
+            "pCS": "ClearBufferCounter-CS"
         }
     ]
 }

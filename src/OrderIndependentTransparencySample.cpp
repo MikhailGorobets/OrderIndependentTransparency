@@ -1,8 +1,18 @@
 #include "OrderIndependentTransparencySample.hpp"
 #include "imgui.h"
+#include "MapHelper.hpp"
 
 namespace Diligent
 {
+
+struct ListNode
+{
+    Uint32 Next;
+    Uint32 Color;
+    Uint32 Depth;
+    Uint32 Coverage;
+};
+
 
 SampleBase* CreateSample()
 {
@@ -17,52 +27,78 @@ void OrderIndependentTransparencySample::Initialize(const SampleInitInfo& InitIn
 {
     SampleBase::Initialize(InitInfo);
 
-    std::vector<std::string> DRSNFiles{
-        "RenderStates/GeometryOpaque.drsn",
-        "RenderStates/GeometryTransparent.drsn",
-        "RenderStates/GeometryResolve.drsn",
-        "RenderStates/GraphicsPrimitives.drsn"};
+    std::vector<std::string> DRSNFiles{"RenderStates/RenderStatesLibrary.drsn"};
 
-    RefCntAutoPtr<IShaderSourceInputStreamFactory> pShaderSourceFactory;
-    m_pEngineFactory->CreateDefaultShaderSourceStreamFactory("Shaders", &pShaderSourceFactory);
-    m_pArchive = std::make_unique<RenderStateArchive>(m_pDevice, pShaderSourceFactory, DRSNFiles);
+    RefCntAutoPtr<IShaderSourceInputStreamFactory> pStreamShaderFactory;
+    m_pEngineFactory->CreateDefaultShaderSourceStreamFactory("Shaders", &pStreamShaderFactory);
+    VERIFY_EXPR(pStreamShaderFactory != nullptr);
 
-    m_pPSOGeometryOpaque      = m_pArchive->GetPipelineState("GeometryOpaque");
-    m_pPSOGeometryTransparent = m_pArchive->GetPipelineState("GeometryTransparent");
-    m_pPSOGeometryResolve     = m_pArchive->GetPipelineState("GeometryResolve");
+    RefCntAutoPtr<IShaderSourceInputStreamFactory> pStreamRenderStatesFactory;
+    m_pEngineFactory->CreateDefaultShaderSourceStreamFactory("RenderStates", &pStreamRenderStatesFactory);
+    VERIFY_EXPR(pStreamRenderStatesFactory != nullptr);
+
+    m_pPSOArchive = std::make_unique<RenderStateArchive>(m_pDevice, pStreamShaderFactory, pStreamRenderStatesFactory, DRSNFiles);
+    m_pSRBArchive = std::make_unique<ShaderResourceBindingArchive>();
+
+    m_pSRBArchive->CreateShaderResourceBinding("GeometryOpaque", m_pPSOArchive->GetPipelineState("GeometryOpaque"));
+    m_pSRBArchive->CreateShaderResourceBinding("GeometryTransparent", m_pPSOArchive->GetPipelineState("GeometryTransparent"));
+    m_pSRBArchive->CreateShaderResourceBinding("GeometryResolve", m_pPSOArchive->GetPipelineState("GeometryResolve"));
+    m_pSRBArchive->CreateShaderResourceBinding("BlitTexture", m_pPSOArchive->GetPipelineState("BlitTexture"));
+    m_pSRBArchive->CreateShaderResourceBinding("ClearUnorderedAccessViewUint", m_pPSOArchive->GetPipelineState("ClearUnorderedAccessViewUint"));
+    m_pSRBArchive->CreateShaderResourceBinding("ClearBufferCounter", m_pPSOArchive->GetPipelineState("ClearBufferCounter"));
 }
 
 void OrderIndependentTransparencySample::Render()
 {
-    auto CmdClearUnorderedAccessViewUint = [&](ITextureView* pUAV, Uint32 ClearColor) {
-        pUAV->GetTexture()->GetDesc().Width;
-        pUAV->GetTexture()->GetDesc().Height;
+    auto CmdClearUnorderedAccessViewUint = [&](IDeviceContext* pDeviceContext, ITextureView* pUAV) {
+        VERIFY_EXPR(pDeviceContext != nullptr);
+        VERIFY_EXPR(pUAV != nullptr);
 
-        auto* pPSO = m_pArchive->GetPipelineState("ClearUnorderedAccessViewUint");
-        m_pImmediateContext->SetPipelineState(pPSO);
-        m_pImmediateContext->CommitShaderResources(nullptr, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-        m_pImmediateContext->DispatchCompute(DispatchComputeAttribs{1, 1});
+        auto const ThreadGroupsX = static_cast<Uint32>(std::ceil(pUAV->GetTexture()->GetDesc().Width / 8.0f));
+        auto const ThreadGroupsY = static_cast<Uint32>(std::ceil(pUAV->GetTexture()->GetDesc().Height / 8.0f));
+
+        auto* pPSO = m_pPSOArchive->GetPipelineState("ClearUnorderedAccessViewUint");
+        auto* pSRB = m_pSRBArchive->GetShaderResourceBinding("ClearUnorderedAccessViewUint");
+
+        pDeviceContext->SetPipelineState(pPSO);
+
+        pSRB->GetVariableByName(SHADER_TYPE_COMPUTE, "TextureUAV")->Set(pUAV);
+
+        pDeviceContext->CommitShaderResources(pSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+        pDeviceContext->DispatchCompute(DispatchComputeAttribs{ThreadGroupsX, ThreadGroupsY});
     };
 
-    auto CmdClearBufferCounter = [&](IBufferView* pTexture, Uint32 Value) {     
-        auto* pPSO = m_pArchive->GetPipelineState("ClearBufferCounter");
-        m_pImmediateContext->SetPipelineState(pPSO);
-        m_pImmediateContext->CommitShaderResources(nullptr, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-        m_pImmediateContext->DispatchCompute(DispatchComputeAttribs{1, 1});
+    auto CmdClearBufferCounter = [&](IDeviceContext* pDeviceContext, IBufferView* pUAV) {
+        VERIFY_EXPR(pDeviceContext != nullptr);
+        VERIFY_EXPR(pUAV != nullptr);
+
+        auto* pPSO = m_pPSOArchive->GetPipelineState("ClearBufferCounter");
+        auto* pSRB = m_pSRBArchive->GetShaderResourceBinding("ClearBufferCounter");
+
+        pDeviceContext->SetPipelineState(pPSO);
+
+        pSRB->GetVariableByName(SHADER_TYPE_COMPUTE, "BufferUAV")->Set(pUAV);
+
+        pDeviceContext->CommitShaderResources(pSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+        pDeviceContext->DispatchCompute(DispatchComputeAttribs{1, 1});
     };
 
-    auto CmdBlitTexture = [&](ITexture* pTextureSrc, ITexture* pTextureDst) {
-       // auto* pSRV = pTextureSrc->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE);
-        auto* pRTV = pTextureDst->GetDefaultView(TEXTURE_VIEW_RENDER_TARGET);
-        auto* pPSO = m_pArchive->GetPipelineState("BlitTexture");
-        m_pImmediateContext->SetRenderTargets(1, &pRTV, nullptr, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-        m_pImmediateContext->SetPipelineState(pPSO);
-        m_pImmediateContext->CommitShaderResources(nullptr, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-        m_pImmediateContext->Draw(DrawAttribs{3, DRAW_FLAG_VERIFY_ALL});
-    };
+    auto CmdBlitTexture = [&](IDeviceContext* pDeviceContext, ITextureView* pTextureSrc, ITextureView* pTextureDst) {
+        VERIFY_EXPR(pDeviceContext != nullptr);
+        VERIFY_EXPR(pTextureSrc != nullptr);
+        VERIFY_EXPR(pTextureDst != nullptr);
 
-    auto const ThreadGroupsX = static_cast<Uint32>(std::ceil(m_pTextureColor_MS->GetDesc().Width / 8.0f));
-    auto const ThreadGroupsY = static_cast<Uint32>(std::ceil(m_pTextureColor_MS->GetDesc().Height / 8.0f));
+        auto* pPSO = m_pPSOArchive->GetPipelineState("BlitTexture");
+        auto* pSRB = m_pSRBArchive->GetShaderResourceBinding("BlitTexture");
+
+        pDeviceContext->SetRenderTargets(1, &pTextureDst, nullptr, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+        pDeviceContext->SetPipelineState(pPSO);
+
+        pSRB->GetVariableByName(SHADER_TYPE_PIXEL, "TextureSRV")->Set(pTextureSrc);
+
+        pDeviceContext->CommitShaderResources(pSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+        pDeviceContext->Draw(DrawAttribs{3, DRAW_FLAG_VERIFY_ALL});
+    };
 
     {
         const float ClearColor[] = {0.1f, 0.1f, 0.1f, 1.0f};
@@ -72,29 +108,33 @@ void OrderIndependentTransparencySample::Render()
         m_pImmediateContext->SetRenderTargets(1, &pRTV, pDSV, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
         m_pImmediateContext->ClearRenderTarget(pRTV, ClearColor, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
         m_pImmediateContext->ClearDepthStencil(pDSV, CLEAR_DEPTH_FLAG, 1.f, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+
+        CmdClearUnorderedAccessViewUint(m_pImmediateContext, m_pTextureHead->GetDefaultView(TEXTURE_VIEW_UNORDERED_ACCESS));
+        CmdClearBufferCounter(m_pImmediateContext, m_pBufferLinkedListCounter->GetDefaultView(BUFFER_VIEW_UNORDERED_ACCESS));
     }
 
     {
+        auto* pPSO = m_pPSOArchive->GetPipelineState("GeometryOpaque");
         auto* pRTV = m_pTextureColor_MS->GetDefaultView(TEXTURE_VIEW_RENDER_TARGET);
         auto* pDSV = m_pTextureDepth_MS->GetDefaultView(TEXTURE_VIEW_DEPTH_STENCIL);
         m_pImmediateContext->SetRenderTargets(1, &pRTV, pDSV, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-        m_pImmediateContext->SetPipelineState(m_pPSOGeometryOpaque);
+        m_pImmediateContext->SetPipelineState(pPSO);
         m_pImmediateContext->Draw(DrawAttribs{3, DRAW_FLAG_VERIFY_ALL, 5});
     }
 
     {
+        auto* pPSO = m_pPSOArchive->GetPipelineState("GeometryTransparent");
+        auto* pSRB = m_pSRBArchive->GetShaderResourceBinding("GeometryTransparent");
         auto* pDSV = m_pTextureDepth_MS->GetDefaultView(TEXTURE_VIEW_DEPTH_STENCIL);
-        m_pImmediateContext->SetRenderTargets(0, nullptr, pDSV, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-        m_pImmediateContext->SetPipelineState(m_pPSOGeometryTransparent);
 
-        CmdClearUnorderedAccessViewUint(m_pTextureHead->GetDefaultView(TEXTURE_VIEW_UNORDERED_ACCESS), 0xFFFFFFF);
-        CmdClearBufferCounter(m_pBufferLinkedList->GetDefaultView(BUFFER_VIEW_UNORDERED_ACCESS), 0);
+        m_pImmediateContext->SetRenderTargets(0, nullptr, pDSV, RESOURCE_STATE_TRANSITION_MODE_NONE);
+        m_pImmediateContext->SetPipelineState(pPSO);
 
-        m_pSRBGeometryTransparent->GetVariableByName(SHADER_TYPE_PIXEL, "TextureHead")->Set(m_pTextureHead->GetDefaultView(TEXTURE_VIEW_UNORDERED_ACCESS));
-        m_pSRBGeometryTransparent->GetVariableByName(SHADER_TYPE_PIXEL, "BufferLinkedList")->Set(m_pBufferLinkedList->GetDefaultView(BUFFER_VIEW_UNORDERED_ACCESS));
-        m_pSRBGeometryTransparent->GetVariableByName(SHADER_TYPE_PIXEL, "BufferLinkedListCounter")->Set(m_pBufferLinkedListCounter->GetDefaultView(BUFFER_VIEW_UNORDERED_ACCESS));
+        pSRB->GetVariableByName(SHADER_TYPE_PIXEL, "TextureHead")->Set(m_pTextureHead->GetDefaultView(TEXTURE_VIEW_UNORDERED_ACCESS));
+        pSRB->GetVariableByName(SHADER_TYPE_PIXEL, "BufferLinkedList")->Set(m_pBufferLinkedList->GetDefaultView(BUFFER_VIEW_UNORDERED_ACCESS));
+        pSRB->GetVariableByName(SHADER_TYPE_PIXEL, "BufferLinkedListCounter")->Set(m_pBufferLinkedListCounter->GetDefaultView(BUFFER_VIEW_UNORDERED_ACCESS));
 
-        m_pImmediateContext->CommitShaderResources(m_pSRBGeometryTransparent, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+        m_pImmediateContext->CommitShaderResources(pSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
         m_pImmediateContext->Draw(DrawAttribs{3, DRAW_FLAG_NONE, 5});
     }
 
@@ -104,16 +144,23 @@ void OrderIndependentTransparencySample::Render()
         ResolveAttribs.DstTextureTransitionMode = RESOURCE_STATE_TRANSITION_MODE_TRANSITION;
         m_pImmediateContext->ResolveTextureSubresource(m_pTextureColor_MS, m_pTextureColor, ResolveAttribs);
 
-        m_pSRBGeometryResolve->GetVariableByName(SHADER_TYPE_COMPUTE, "TextureColor")->Set(m_pTextureColor->GetDefaultView(TEXTURE_VIEW_UNORDERED_ACCESS));
-        m_pSRBGeometryResolve->GetVariableByName(SHADER_TYPE_COMPUTE, "TextureHead")->Set(m_pTextureHead->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE));
-        m_pSRBGeometryResolve->GetVariableByName(SHADER_TYPE_COMPUTE, "BufferLinkedList")->Set(m_pBufferLinkedList->GetDefaultView(BUFFER_VIEW_SHADER_RESOURCE));
+        auto const ThreadGroupsX = static_cast<Uint32>(std::ceil(m_pTextureColor_MS->GetDesc().Width / 8.0f));
+        auto const ThreadGroupsY = static_cast<Uint32>(std::ceil(m_pTextureColor_MS->GetDesc().Height / 8.0f));
 
-        m_pImmediateContext->SetPipelineState(m_pPSOGeometryResolve);
-        m_pImmediateContext->CommitShaderResources(m_pSRBGeometryResolve, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+        auto* pPSO = m_pPSOArchive->GetPipelineState("GeometryResolve");
+        auto* pSRB = m_pSRBArchive->GetShaderResourceBinding("GeometryResolve");
+
+        m_pImmediateContext->SetPipelineState(pPSO);
+
+        pSRB->GetVariableByName(SHADER_TYPE_COMPUTE, "TextureColor")->Set(m_pTextureColorUAV_Linear);
+        pSRB->GetVariableByName(SHADER_TYPE_COMPUTE, "TextureHead")->Set(m_pTextureHead->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE));
+        pSRB->GetVariableByName(SHADER_TYPE_COMPUTE, "BufferLinkedList")->Set(m_pBufferLinkedList->GetDefaultView(BUFFER_VIEW_SHADER_RESOURCE));
+
+        m_pImmediateContext->CommitShaderResources(pSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
         m_pImmediateContext->DispatchCompute(DispatchComputeAttribs{ThreadGroupsX, ThreadGroupsY});
     }
 
-    CmdBlitTexture(m_pTextureColor, m_pSwapChain->GetCurrentBackBufferRTV()->GetTexture());
+    CmdBlitTexture(m_pImmediateContext, m_pTextureColorSRV_Gamma, m_pSwapChain->GetCurrentBackBufferRTV());
 }
 
 void OrderIndependentTransparencySample::Update(double CurrTime, double ElapsedTime)
@@ -125,8 +172,10 @@ void OrderIndependentTransparencySample::Update(double CurrTime, double ElapsedT
 
 void OrderIndependentTransparencySample::WindowResize(Uint32 Width, Uint32 Height)
 {
-
     SampleBase::WindowResize(Width, Height);
+
+    m_pTextureColorSRV_Gamma.Release();
+    m_pTextureColorUAV_Linear.Release();
 
     m_pTextureColor.Release();
     m_pTextureColor_MS.Release();
@@ -136,17 +185,16 @@ void OrderIndependentTransparencySample::WindowResize(Uint32 Width, Uint32 Heigh
     m_pBufferLinkedListCounter.Release();
 
     {
-        auto pCurrentBackBuffer = m_pSwapChain->GetCurrentBackBufferRTV()->GetTexture();
-
-        TextureDesc TextureCI{"TextureColor", RESOURCE_DIM_TEX_2D, Width, Height, 1, pCurrentBackBuffer->GetDesc().Format};
-        TextureCI.BindFlags = BIND_UNORDERED_ACCESS | BIND_RENDER_TARGET;
+        TextureDesc TextureCI{"TextureColor", RESOURCE_DIM_TEX_2D, Width, Height, 1, TEX_FORMAT_RGBA8_TYPELESS};
+        TextureCI.BindFlags = BIND_UNORDERED_ACCESS | BIND_SHADER_RESOURCE;
         m_pDevice->CreateTexture(TextureCI, nullptr, &m_pTextureColor);
+
+        m_pTextureColor->CreateView(TextureViewDesc{"TextureColor-SRV", TEXTURE_VIEW_SHADER_RESOURCE, RESOURCE_DIM_TEX_2D, TEX_FORMAT_RGBA8_UNORM_SRGB}, &m_pTextureColorSRV_Gamma);
+        m_pTextureColor->CreateView(TextureViewDesc{"TextureColor-UAV", TEXTURE_VIEW_UNORDERED_ACCESS, RESOURCE_DIM_TEX_2D, TEX_FORMAT_RGBA8_UNORM}, &m_pTextureColorUAV_Linear);
     }
 
     {
-        auto pCurrentBackBuffer = m_pSwapChain->GetCurrentBackBufferRTV()->GetTexture();
-
-        TextureDesc TextureCI{"TextureColor-MS", RESOURCE_DIM_TEX_2D, Width, Height, 1, pCurrentBackBuffer->GetDesc().Format};
+        TextureDesc TextureCI{"TextureColor-MS", RESOURCE_DIM_TEX_2D, Width, Height, 1, m_pSwapChain->GetCurrentBackBufferRTV()->GetDesc().Format};
         TextureCI.BindFlags   = BIND_RENDER_TARGET | BIND_SHADER_RESOURCE;
         TextureCI.SampleCount = m_SampleCount;
         m_pDevice->CreateTexture(TextureCI, nullptr, &m_pTextureColor_MS);
@@ -166,14 +214,6 @@ void OrderIndependentTransparencySample::WindowResize(Uint32 Width, Uint32 Heigh
     }
 
     {
-        struct ListNode
-        {
-            uint32_t Next;
-            uint32_t Color;
-            uint32_t Depth;
-            uint32_t Coverage;
-        };
-
         BufferDesc BufferCI{"BufferLinkedList", sizeof(ListNode) * Width * Height * m_LayerCount, BIND_SHADER_RESOURCE | BIND_UNORDERED_ACCESS};
         BufferCI.Mode              = BUFFER_MODE_STRUCTURED;
         BufferCI.ElementByteStride = sizeof(ListNode);
@@ -182,31 +222,37 @@ void OrderIndependentTransparencySample::WindowResize(Uint32 Width, Uint32 Heigh
 
     {
         BufferDesc BufferCI{"BufferLinkedListCounter", sizeof(uint32_t), BIND_SHADER_RESOURCE | BIND_UNORDERED_ACCESS};
-        BufferCI.Mode = BUFFER_MODE_STRUCTURED;
+        BufferCI.Mode              = BUFFER_MODE_STRUCTURED;
         BufferCI.ElementByteStride = sizeof(uint32_t);
         m_pDevice->CreateBuffer(BufferCI, nullptr, &m_pBufferLinkedListCounter);
     }
-
-
-    //m_pSRBGeometryOpaque.Release();
-    //m_pPSOGeometryOpaque->CreateShaderResourceBinding(&m_pSRBGeometryOpaque);
-
-    m_pSRBGeometryTransparent.Release();
-    m_pPSOGeometryTransparent->CreateShaderResourceBinding(&m_pSRBGeometryTransparent);
-
-    m_pSRBGeometryResolve.Release();
-    m_pPSOGeometryResolve->CreateShaderResourceBinding(&m_pSRBGeometryResolve);
 }
 
 void OrderIndependentTransparencySample::UpdateUI()
 {
+
+    ImGui::Begin("Settings");
+    ImGui::SliderInt("Layer Count", &m_LayerCount, 1, 32);
+
+    const Char* ComboItems[] = {"x1", "x2", "x4", "x8"};
+
+    const Char* CurrentItem = ComboItems[static_cast<Uint32>(log2<Uint32>(static_cast<Uint32>(m_SampleCount)))];
+
+    if (ImGui::BeginCombo("##SampleCount", CurrentItem))
     {
-        ImGui::Begin("Settings");
-        ImGui::SliderInt("Fragment Count", &m_FragmentCount, 1, 128);
-        ImGui::SliderInt("Layer Count", &m_LayerCount, 1, 32);
-        ImGui::SliderInt("MSAA Samples", &m_SampleCount, 1, 8);
-        ImGui::End();
+        for (Int32 ElementID = 0; ElementID < IM_ARRAYSIZE(ComboItems); ElementID++)
+        {
+            bool IsSelected = (CurrentItem == ComboItems[ElementID]);
+            if (ImGui::Selectable(ComboItems[ElementID], IsSelected))
+                m_SampleCount = static_cast<SAMPLE_COUNT>(ElementID);
+
+            if (IsSelected)
+                ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndCombo();
     }
+
+    ImGui::End();
 }
 
 } // namespace Diligent

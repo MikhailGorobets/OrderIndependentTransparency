@@ -1,7 +1,6 @@
-
 #include "Common.hlsli"
 
-#define FRAGMENT_COUNT    32
+#define FRAGMENT_COUNT    8
 #define MSAA_SAMPLE_COUNT 4
 
 RWTexture2D<unorm float4>  TextureColor;
@@ -9,48 +8,52 @@ Texture2D<uint>            TextureHead;
 StructuredBuffer<ListNode> BufferLinkedList;
 
 [numthreads(8, 8, 1)]
-void CSMain(uint3 id: SV_DispatchThreadID) {
-       
-    float4 backBuffer = TextureColor[id.xy];
-    float4 resolveBuffer = float4(0.0, 0.0, 0.0, 0.0f);
+void CSMain(uint3 Id: SV_DispatchThreadID)
+{     
+    float4 BackBuffer = TextureColor[Id.xy];
+    float4 ResolveBuffer = float4(0.0, 0.0, 0.0, 0.0f);
     
-    uint nodeHead = TextureHead[id.xy];
-    if (nodeHead == 0xFFFFFFFF)
+    uint NodeHead = TextureHead[Id.xy];
+    if (NodeHead == TEXTURE_UINT_CLEAR)
         return;
     
-    ListSubNode nodes[FRAGMENT_COUNT]; 
-    for (uint sampleIdx = 0; sampleIdx < MSAA_SAMPLE_COUNT; sampleIdx++) {
-       
-        uint count = 0;
-        uint nodeIdx = nodeHead;
+    ListSubNode Nodes[FRAGMENT_COUNT];
+    for (uint SampleIdx = 0; SampleIdx < MSAA_SAMPLE_COUNT; SampleIdx++)
+    {   
+        uint Count = 0;
+        uint NodeIdx = NodeHead;
      
-        while (nodeIdx != 0xFFFFFFFF && count < FRAGMENT_COUNT) {
-            ListNode node = BufferLinkedList[nodeIdx];
-            if (node.Coverage & (1 << sampleIdx)) {
-                nodes[count].Depth = asfloat(node.Depth);
-                nodes[count].Color = node.Color;
-                count++;
+        while (NodeIdx != TEXTURE_UINT_CLEAR && Count < FRAGMENT_COUNT)
+        {
+            ListNode Node = BufferLinkedList[NodeIdx];
+            if (Node.Coverage & (1 << SampleIdx))
+            {
+                Nodes[Count].Depth = asfloat(Node.Depth);
+                Nodes[Count].Color = Node.Color;
+                Count++;
             }
-            nodeIdx = node.Next;
+            NodeIdx = Node.Next;
         }
               
-        for (uint i = 1; i < count; i++) {
-            ListSubNode t = nodes[i];
+        for (uint i = 1; i < Count; i++)
+        {
+            ListSubNode t = Nodes[i];
             uint j = i;
-            while (j > 0 && (nodes[j - 1].Depth < t.Depth)) {
-                nodes[j] = nodes[j - 1];
+            while (j > 0 && (Nodes[j - 1].Depth < t.Depth))
+            {
+                Nodes[j] = Nodes[j - 1];
                 j--;
             }
-            nodes[j] = t;
+            Nodes[j] = t;
         }
          
-        float4 dstPixelColor = backBuffer;
-        for (uint index = 0; index < count; index++) {
-            float4 srcPixelColor = UnpackColor(nodes[index].Color);
-            dstPixelColor = lerp(dstPixelColor, srcPixelColor, srcPixelColor.a);
+        float4 DstPixelColor = BackBuffer;
+        for (uint k = 0; k < Count; k++)
+        {
+            float4 SrcPixelColor = UnpackColor(Nodes[k].Color);
+            DstPixelColor = lerp(DstPixelColor, SrcPixelColor, SrcPixelColor.a);
         }
-        resolveBuffer += dstPixelColor;
-    }  
-    TextureColor[id.xy] = resolveBuffer / MSAA_SAMPLE_COUNT;
+        ResolveBuffer += DstPixelColor;
+    }
+    TextureColor[Id.xy] = ResolveBuffer / MSAA_SAMPLE_COUNT;
 }
-

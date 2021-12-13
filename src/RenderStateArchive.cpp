@@ -10,7 +10,8 @@ namespace Diligent
 
 RenderStateArchive::RenderStateArchive(
     RefCntAutoPtr<IRenderDevice>                   pRenderDevice,
-    RefCntAutoPtr<IShaderSourceInputStreamFactory> pStreamFactory,
+    RefCntAutoPtr<IShaderSourceInputStreamFactory> pStreamShaderFactory,
+    RefCntAutoPtr<IShaderSourceInputStreamFactory> pStreamRenderStatesFactory,
     const std::vector<std::string>&                DRSNFiles)
 {
 
@@ -18,7 +19,11 @@ RenderStateArchive::RenderStateArchive(
     for (auto const& Path : DRSNFiles)
     {
         RefCntAutoPtr<IRenderStateNotationParser> pParser;
-        CreateRenderStateNotationParserFromFile(Path.c_str(), &pParser);
+
+        RenderStateNotationParserCreateInfo ParserCI{};
+        ParserCI.FilePath       = Path.c_str();
+        ParserCI.pStreamFactory = pStreamRenderStatesFactory;
+        CreateRenderStateNotationParser(ParserCI, &pParser);
         DEV_CHECK_ERR(pParser != nullptr, "Failed to parse file '", Path, "'.");
         NotationParsers.push_back(pParser);
     }
@@ -35,7 +40,7 @@ RenderStateArchive::RenderStateArchive(
         for (Uint32 ShaderID = 0; ShaderID < ParserInfo.ShaderCount; ShaderID++)
         {
             ShaderCreateInfo ShaderCI           = *pNotationParser->GetShaderByIndex(ShaderID);
-            ShaderCI.pShaderSourceStreamFactory = pStreamFactory;
+            ShaderCI.pShaderSourceStreamFactory = pStreamShaderFactory;
 
             RefCntAutoPtr<IShader> pShader;
             pRenderDevice->CreateShader(ShaderCI, &pShader);
@@ -45,8 +50,7 @@ RenderStateArchive::RenderStateArchive(
 
         for (Uint32 RenderPassID = 0; RenderPassID < ParserInfo.RenderPassCount; RenderPassID++)
         {
-            RenderPassDesc RenderPassDesc = *pNotationParser->GetRenderPassByIndex(RenderPassID);
-
+            RenderPassDesc             RenderPassDesc = *pNotationParser->GetRenderPassByIndex(RenderPassID);
             RefCntAutoPtr<IRenderPass> pRenderPass;
             pRenderDevice->CreateRenderPass(RenderPassDesc, &pRenderPass);
             DEV_CHECK_ERR(pRenderPass != nullptr, "Failed to create render pass '", RenderPassDesc.Name, "'.");

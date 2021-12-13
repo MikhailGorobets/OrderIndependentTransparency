@@ -1,0 +1,8 @@
+{
+    "Imports": [
+        "GeometryOpaque.drsn",
+        "GeometryResolve.drsn",
+        "GeometryTransparent.drsn",
+        "GraphicsPrimitives.drsn"
+    ]
+}

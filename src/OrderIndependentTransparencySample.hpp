@@ -4,6 +4,7 @@
 #include "SampleBase.hpp"
 #include "BasicMath.hpp"
 #include "RenderStateArchive.hpp"
+#include "ShaderResourceBindingArchive.hpp"
 
 namespace Diligent
 {
@@ -27,11 +28,8 @@ private:
     void UpdateUI();
 
 private:
-    Int32 m_FragmentCount = 32;
-    Int32 m_LayerCount    = 8;
-    Int32 m_SampleCount   = 4;
-
-    std::unique_ptr<RenderStateArchive> m_pArchive;
+    Int32        m_LayerCount    = 4;
+    SAMPLE_COUNT m_SampleCount   = SAMPLE_COUNT_4;
 
     RefCntAutoPtr<ITexture> m_pTextureColor;
     RefCntAutoPtr<ITexture> m_pTextureColor_MS;
@@ -39,14 +37,12 @@ private:
     RefCntAutoPtr<ITexture> m_pTextureHead;
     RefCntAutoPtr<IBuffer>  m_pBufferLinkedList;
     RefCntAutoPtr<IBuffer>  m_pBufferLinkedListCounter;
-    
-    RefCntAutoPtr<IShaderResourceBinding> m_pSRBGeometryOpaque;
-    RefCntAutoPtr<IShaderResourceBinding> m_pSRBGeometryTransparent;
-    RefCntAutoPtr<IShaderResourceBinding> m_pSRBGeometryResolve;
 
-    RefCntAutoPtr<IPipelineState> m_pPSOGeometryOpaque;
-    RefCntAutoPtr<IPipelineState> m_pPSOGeometryTransparent;
-    RefCntAutoPtr<IPipelineState> m_pPSOGeometryResolve;
+    RefCntAutoPtr<ITextureView> m_pTextureColorUAV_Linear;
+    RefCntAutoPtr<ITextureView> m_pTextureColorSRV_Gamma;
+
+    std::unique_ptr<RenderStateArchive>           m_pPSOArchive;
+    std::unique_ptr<ShaderResourceBindingArchive> m_pSRBArchive;
 };
 
 } // namespace Diligent

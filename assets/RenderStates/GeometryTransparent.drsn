@@ -21,7 +21,7 @@
             "UseCombinedTextureSamplers": true
         }
     ],
-    "Pipeleines": [
+    "Pipelines": [
         {
             "GraphicsPipeline": {
                 "DepthStencilDesc": {
@@ -34,15 +34,15 @@
                     "CullMode": "NONE",
                     "FrontCounterClockwise": true,
                     "DepthClipEnable": true
-                },               
+                },
                 "SmplDesc": {
                     "Count": 4,
                     "Quality": 0
-                },      
+                },
                 "NumRenderTargets": 0,
                 "DSVFormat": "D32_FLOAT",
                 "PrimitiveTopology": "TRIANGLE_LIST"
-                
+
             },
             "PSODesc": {
                 "Name": "GeometryTransparent",
@@ -50,9 +50,22 @@
                 "ResourceLayout": {
                     "DefaultVariableMergeStages": "PIXEL",
                     "Variables": [
-                        { "ShaderStages": [ "PIXEL" ], "Name": "TextureHead",      "Type": "DYNAMIC" },
-                        { "ShaderStages": [ "PIXEL" ], "Name": "BufferLinkedList", "Type": "DYNAMIC" }
-                    ]                   
+                        {
+                            "ShaderStages": [ "PIXEL" ],
+                            "Name": "TextureHead",
+                            "Type": "DYNAMIC"
+                        },
+                        {
+                            "ShaderStages": [ "PIXEL" ],
+                            "Name": "BufferLinkedList",
+                            "Type": "DYNAMIC"
+                        },
+                        {
+                            "ShaderStages": [ "PIXEL" ],
+                            "Name": "BufferLinkedListCounter",
+                            "Type": "DYNAMIC"
+                        }
+                    ]
                 }
             },
             "pVS": "GeometryTransparent-VS",

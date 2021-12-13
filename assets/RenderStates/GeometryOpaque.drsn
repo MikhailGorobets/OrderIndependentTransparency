@@ -21,7 +21,7 @@
             "UseCombinedTextureSamplers": true
         }
     ],
-    "Pipeleines": [
+    "Pipelines": [
         {
             "GraphicsPipeline": {
                 "DepthStencilDesc": {
@@ -34,18 +34,18 @@
                     "CullMode": "BACK",
                     "FrontCounterClockwise": true,
                     "DepthClipEnable": true
-                },               
+                },
                 "SmplDesc": {
                     "Count": 4,
                     "Quality": 0
-                },      
+                },
                 "NumRenderTargets": 1,
                 "RTVFormats": {
-                  "0": "RGBA8_UNORM"
+                    "0": "RGBA8_UNORM_SRGB"
                 },
                 "DSVFormat": "D32_FLOAT",
                 "PrimitiveTopology": "TRIANGLE_LIST"
-                
+
             },
             "PSODesc": {
                 "Name": "GeometryOpaque",

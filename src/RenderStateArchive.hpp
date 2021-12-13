@@ -8,7 +8,8 @@ class RenderStateArchive final
 {
 public:
     RenderStateArchive(RefCntAutoPtr<IRenderDevice>                   pRenderDevice,
-                       RefCntAutoPtr<IShaderSourceInputStreamFactory> pStreamFactory,
+                       RefCntAutoPtr<IShaderSourceInputStreamFactory> pStreamShaderFactory,
+                       RefCntAutoPtr<IShaderSourceInputStreamFactory> pStreamRenderStatesFactory,
                        const std::vector<std::string>&                DRSNFiles);
 
     IPipelineState* GetPipelineState(const std::string& Name);
