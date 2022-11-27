@@ -3,22 +3,22 @@
         {
             "Desc": {
                 "Name": "GeometryOpaque-VS",
-                "ShaderType": "VERTEX"
+                "ShaderType": "VERTEX",
+                "UseCombinedTextureSamplers": true
             },
             "SourceLanguage": "HLSL",
             "FilePath": "GeometryOpaque.hlsl",
-            "EntryPoint": "VSMain",
-            "UseCombinedTextureSamplers": true
+            "EntryPoint": "VSMain"
         },
         {
             "Desc": {
                 "Name": "GeometryOpaque-PS",
-                "ShaderType": "PIXEL"
+                "ShaderType": "PIXEL",
+                "UseCombinedTextureSamplers": true
             },
             "SourceLanguage": "HLSL",
             "FilePath": "GeometryOpaque.hlsl",
-            "EntryPoint": "PSMain",
-            "UseCombinedTextureSamplers": true
+            "EntryPoint": "PSMain"
         }
     ],
     "Pipelines": [

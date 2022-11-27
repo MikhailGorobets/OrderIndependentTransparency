@@ -3,12 +3,12 @@
         {
             "Desc": {
                 "Name": "GeometryResolve-CS",
-                "ShaderType": "COMPUTE"
+                "ShaderType": "COMPUTE",
+                "UseCombinedTextureSamplers": true
             },
             "SourceLanguage": "HLSL",
             "FilePath": "GeometryResolve.hlsl",
-            "EntryPoint": "CSMain",
-            "UseCombinedTextureSamplers": true
+            "EntryPoint": "CSMain"
         }
     ],
     "Pipelines": [

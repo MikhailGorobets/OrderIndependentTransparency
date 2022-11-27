@@ -1,17 +1,19 @@
 cmake_minimum_required (VERSION 3.6)
 
+add_subdirectory(3rd-party/DiligentCore)
+add_subdirectory(3rd-party/DiligentTools)
+add_subdirectory(3rd-party/DiligentFX)
+add_subdirectory(3rd-party/DiligentSamples)
+
 project(OrderIndependentTransparency CXX)
 
-set(SOURCE
-    src/RenderStateArchive.cpp
-    src/ShaderResourceBindingArchive.cpp
-    src/OrderIndependentTransparencySample.cpp
-)
 
 set(INCLUDE
-    src/RenderStateArchive.hpp
-    src/ShaderResourceBindingArchive.hpp
-    src/OrderIndependentTransparencySample.hpp
+    include/OrderIndependentTransparencySample.hpp
+)
+
+set(SOURCE
+    source/OrderIndependentTransparencySample.cpp
 )
 
 set(SHADERS
@@ -31,5 +33,7 @@ set(RENDER_STATES
 )
 
 
-add_sample_app("OrderIndependentTransparency" "DiligentCommunity/Samples" "${SOURCE}" "${INCLUDE}" "${SHADERS}" "${RENDER_STATES}")
-target_link_libraries(OrderIndependentTransparency PRIVATE Diligent-RenderStateNotationParser)
+add_sample_app("OrderIndependentTransparency" "DiligentCommunity" "${SOURCE}" "${INCLUDE}" "${SHADERS}" "${RENDER_STATES}")
+target_link_libraries(OrderIndependentTransparency PRIVATE Diligent-RenderStateNotation)
+target_include_directories(OrderIndependentTransparency PRIVATE "include")
+set_property(TARGET OrderIndependentTransparency PROPERTY CXX_STANDARD 20)
