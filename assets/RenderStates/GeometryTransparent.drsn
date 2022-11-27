@@ -3,22 +3,23 @@
         {
             "Desc": {
                 "Name": "GeometryTransparent-VS",
-                "ShaderType": "VERTEX"
+                "ShaderType": "VERTEX",
+                "UseCombinedTextureSamplers": true
             },
             "SourceLanguage": "HLSL",
             "FilePath": "GeometryTransparent.hlsl",
-            "EntryPoint": "VSMain",
-            "UseCombinedTextureSamplers": true
+            "EntryPoint": "VSMain"
+
         },
         {
             "Desc": {
                 "Name": "GeometryTransparent-PS",
-                "ShaderType": "PIXEL"
+                "ShaderType": "PIXEL",
+                "UseCombinedTextureSamplers": true
             },
             "SourceLanguage": "HLSL",
             "FilePath": "GeometryTransparent.hlsl",
-            "EntryPoint": "PSMain",
-            "UseCombinedTextureSamplers": true
+            "EntryPoint": "PSMain"
         }
     ],
     "Pipelines": [

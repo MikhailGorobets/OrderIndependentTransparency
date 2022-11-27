@@ -1,0 +1,12 @@
+[submodule "3rd-party/DiligentCore"]
+	path = 3rd-party/DiligentCore
+	url = https://github.com/DiligentGraphics/DiligentCore.git
+[submodule "3rd-party/DiligentTools"]
+	path = 3rd-party/DiligentTools
+	url = https://github.com/DiligentGraphics/DiligentTools.git
+[submodule "3rd-party/DiligentSamples"]
+	path = 3rd-party/DiligentSamples
+	url = https://github.com/DiligentGraphics/DiligentSamples.git
+[submodule "3rd-party/DiligentFX"]
+	path = 3rd-party/DiligentFX
+	url = https://github.com/DiligentGraphics/DiligentFX.git
